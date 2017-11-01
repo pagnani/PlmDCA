@@ -29,14 +29,15 @@ immutable PlmVar
     gaugecol::Int
     lambdaJ::Float64
     lambdaH::Float64
+    stability::Float64
     Z::SharedArray{Int,2}
     W::SharedArray{Float64,1}
-    function PlmVar(N,M,q,q2,gaugecol,lambdaJ, lambdaH, Z,W)
+    function PlmVar(N,M,q,q2,gaugecol,lambdaJ, lambdaH, stability, Z, W)
         sZ = SharedArray{Int}(size(Z))
         sZ[:] = Z
         sW = SharedArray{Float64}(size(W))
         sW[:] = W
-        new(N,M,q,q2,gaugecol,lambdaJ, lambdaH, sZ,sW)
+        new(N,M,q,q2,gaugecol,lambdaJ, lambdaH, stability, sZ, sW)
     end
 end
 

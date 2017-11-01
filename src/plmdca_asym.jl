@@ -1,4 +1,4 @@
-function plmdca(filename::AbstractString;
+function plmdca(filename::String;
                         decimation::Bool=false,
                         boolmask::Union{Array{Bool,2},Void}=nothing,
                         fracmax::Float64 = 0.3,
@@ -13,6 +13,7 @@ function plmdca(filename::AbstractString;
                         epsconv::Real=1.0e-5,
                         maxit::Int=1000,
                         verbose::Bool=true,
+                        stability::Float64=0.0,
                         method::Symbol=:LD_LBFGS)
 
     W,Z,N,M,q = ReadFasta(filename,max_gap_fraction, theta, remove_dups)
@@ -20,7 +21,7 @@ function plmdca(filename::AbstractString;
     boolmask != nothing && size(boolmask) != (N,N) && error("size boolmask different from ( $N, $N )")
 
     plmalg = PlmAlg(method,verbose, epsconv ,maxit, boolmask)
-    plmvar = PlmVar(N,M,q,q*q,gaugecol,lambdaJ,lambdaH,Z,W)
+    plmvar = PlmVar(N,M,q,q*q,gaugecol,lambdaJ,lambdaH,stability,Z,W)
 
 
     if decimation  == false
@@ -107,6 +108,7 @@ function PLsiteAndGrad!(vecJ::Array{Float64,1},  grad::Array{Float64,1}, site::I
     gaugecol = plmvar.gaugecol
     N = plmvar.N
     M = plmvar.M
+    stability = plmvar.stability
     Z = sdata(plmvar.Z)
     W = sdata(plmvar.W)
 
@@ -124,7 +126,7 @@ function PLsiteAndGrad!(vecJ::Array{Float64,1},  grad::Array{Float64,1}, site::I
  
     @inbounds begin 
         for a = 1:M       
-            fillvecene!(vecene, vecJ,site,a, q, Z,N)        
+            fillvecene!(vecene, vecJ, site, a, q, Z, N, stability)        
             lnorm = log(sumexp(vecene))
             expvecenesunorm .= exp.(vecene .- lnorm)
             pseudolike -= W[a] * (vecene[Z[site,a]] - lnorm)
@@ -172,26 +174,25 @@ function PLsiteAndGrad!(vecJ::Array{Float64,1},  grad::Array{Float64,1}, site::I
     return pseudolike 
 end
 
-function fillvecene!(vecene::Array{Float64,1}, vecJ::Array{Float64,1},site::Int, a::Int, q::Int, sZ::DenseArray{Int,2},N::Int)
+function fillvecene!(vecene::Array{Float64,1}, vecJ::Array{Float64,1},site::Int, a::Int, q::Int, sZ::DenseArray{Int,2},N::Int,stability::Float64)
 
     q2 = q*q   
     Z = sdata(sZ)
-    @inbounds begin
-        for l = 1:q
-            offset::Int = 0
-            scra::Float64 = 0.0
-            for i = 1:site-1 # Begin sum_i \neq site J
-                scra += vecJ[offset + l + q * (Z[i,a]-1)] 
-                offset += q2 
-            end
-            # skipping sum over residue site
-    	    for i = site+1:N
-                scra += vecJ[offset + l + q * (Z[i,a]-1)] 
-                offset += q2 
-            end # End sum_i \neq site J
-            scra += vecJ[offset + l] # sum H 
-            vecene[l] = scra
+    
+    @inbounds for l = 1:q
+        offset::Int = 0
+        scra::Float64 = 0.0
+        for i = 1:site-1 # Begin sum_i \neq site J
+            scra += vecJ[offset + l + q * (Z[i,a]-1)] 
+            offset += q2 
         end
+        # skipping sum over residue site
+    	for i = site+1:N
+            scra += vecJ[offset + l + q * (Z[i,a]-1)] 
+            offset += q2
+        end # End sum_i \neq site J
+        scra += vecJ[offset + l] # sum H 
+        vecene[l] = scra - stability
     end
 end
 
