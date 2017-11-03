@@ -178,6 +178,7 @@ function fillvecene!(vecene::Array{Float64,1}, vecJ::Array{Float64,1},site::Int,
 
     q2 = q*q   
     Z = sdata(sZ)
+    colorsite = Z[site, a]
     
     @inbounds for l = 1:q
         offset::Int = 0
@@ -192,8 +193,10 @@ function fillvecene!(vecene::Array{Float64,1}, vecJ::Array{Float64,1},site::Int,
             offset += q2
         end # End sum_i \neq site J
         scra += vecJ[offset + l] # sum H 
-        vecene[l] = scra - stability
+        vecene[l] = scra
     end
+    vecene[colorsite]-= stability
+    nothing
 end
 
 
