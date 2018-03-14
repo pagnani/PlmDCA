@@ -9,7 +9,7 @@ function mutualinfo(filename::AbstractString;
 
     Z = GaussDCA.read_fasta_alignment(filename, max_gap_fraction)
     q = Int(maximum(Z))
-    Pi_true, Pij_true, Meff, _ = GaussDCA.compute_new_frequencies(Z, q, :auto)
+    Pi_true, Pij_true, Meff, _ = GaussDCA.compute_new_frequencies(Z, q,  theta)
     N = div(length(Pi_true),q-1)
     if 0.0 < pseudocount <= 1.
         Pi, Pij = GaussDCA.add_pseudocount(Pi_true, Pij_true, pseudocount, N, q)
@@ -72,7 +72,9 @@ function mut_inf(Pij::Matrix{Float64},Pi::Vector{Float64},Q::Int)
             piq[i] -= Pi[j]
         end
         piq[i] += 1.
-        assert(0. <= piq[i] <= 1.)
+        if 0.0 > piq[i] > 1.0
+            error("probability is not normalized???")
+        end
     end
 
     ctr = 0
@@ -90,6 +92,7 @@ function mut_inf(Pij::Matrix{Float64},Pi::Vector{Float64},Q::Int)
                     pj  = Pi[col0 + b] 
                     if pij > 0
                         mi += pij * log(pij / (pi*pj))                     
+
                     end
                 end
             end            
@@ -97,34 +100,31 @@ function mut_inf(Pij::Matrix{Float64},Pi::Vector{Float64},Q::Int)
                 pij = vec_row[a]
                 pi  = piq[i]
                 pj  = Pi[col0 + a]
-                if pij > 0
+                pipj = pi * pj
+                if pij > 0 && pipj >0 
                     mi += pij * log(pij / (pi*pj)) # contribution bottom frame
                 end
                 pij = vec_col[a]
                 pi  = Pi[row0 + a]
                 pj  = piq[j]
-                if pij > 0
+                pipj = pj * pj
+                if pij > 0 && pipj > 0  
                     mi += pij * log(pij / (pi*pj)) # contribution rigth frame
                 end                
-            end
-
+            end                        
+            
             _srow = sum(vec_row)  # contribution from Pij[q,q]
             _scol = sum(vec_col)
             pqqrow = piq[i] - _srow
             pqqcol = piq[j] - _scol
-            if abs(pqqrow - pqqcol) > 1e-12
-                warn("pqqrow = $pqqrow, pqqcol=$pqqcol") 
-                println("vec_row = ", vec_row)
-                println("vec_col = ", vec_col)
-            end
-            if pqqrow > 0
-                mi += pqqrow * log(pqqrow/(piq[i]*piq[j]))
-            end           
+            pipj = piq[i]*piq[j]
+            if pqqrow > 0 && pipj > 0
+                mi += pqqrow * log(pqqrow/pipj)
+            end                       
             scoreM[i,j] = mi
             scoreM[j,i] = mi
         end
     end
-
     return scoreM
 end
 
