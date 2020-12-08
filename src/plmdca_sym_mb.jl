@@ -107,6 +107,7 @@ function MinimizePLSym_mb(alg::PlmAlg, var::PlmVar; n_minibatch::Int=10, method=
     end
 
     # full optimization
+    opt = RMSProp();pl_t=0.;
     if full_opt
         verbose && println("Full optimize: ")
         for op in 1:n_epoch
@@ -119,7 +120,7 @@ function MinimizePLSym_mb(alg::PlmAlg, var::PlmVar; n_minibatch::Int=10, method=
 
             #check convergence
             fa=abs(pl-pl_t);fr=abs(pl-pl_t)/pl; xa=sum(abs2.(x.-x_t));xr=sum(abs2.(x.-x_t))/sum(abs2.(x));
-            println("fa = ",fa," fr = ",fr," xa = ",xa," xr = ",xr)
+            #println("fa = ",fa," fr = ",fr," xa = ",xa," xr = ",xr)
             if fa < fatol || fr < frtol || xa < xatol || xr < xrtol  
                 verbose &&  println("TOL reached")
                 return x, pl
