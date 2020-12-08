@@ -80,28 +80,23 @@ function MinimizePLSym_mb(alg::PlmAlg, var::PlmVar; n_minibatch::Int=10, method=
     for e in 1:n_epoch
 
         ridx=randperm(size(Z,2))
-        println("epoch: ",e," ")
-        k=1;
+        verbose && println("epoch: ",e," ")
 
         for mb in get_minibatches(ridx,n_minibatch)
 
-            print(k," ")
-
             pls=pl_grad!(grad, x, view(Z,:,mb), view(W,mb), var)
             Flux.Optimise.update!(opt, x, grad)
-            k+=1
-        end
-        println(" ")
 
-        if rem(e,cb) == 0
-            pl = pl_grad!(zeros(size(x)), x, Z, W, var) 
+        end
+
+        if rem(e,cb) == 0 
+
+            pl = pl_grad!(zeros(size(x)), x, Z, W, var)  #full pseudolikelihood
 
             verbose &&  println("pl = ",pl)
-
+            #check convergence
             fa=abs(pl-pl_t);fr=abs(pl-pl_t)/pl; xa=sum(abs2.(x.-x_t));xr=sum(abs2.(x.-x_t))/sum(abs2.(x));
-            #println("fa = ",fa," fr = ",fr," xa = ",xa," xr = ",xr)
-
-            if fa < fatol || fr < frtol || xa < xatol || xr < xrtol 
+            if fa < fatol || fr < frtol || xa < xatol || xr < xrtol  
                 verbose &&  println("TOL reached")
                 return x, pl
             end
@@ -111,23 +106,25 @@ function MinimizePLSym_mb(alg::PlmAlg, var::PlmVar; n_minibatch::Int=10, method=
         end
     end
 
+    # full optimization
     if full_opt
         verbose && println("Full optimize: ")
         for op in 1:n_epoch
            
             print(op," ")
 
-            pls=pl_grad!(grad, x, Z, W, var)
+            pl=pl_grad!(grad, x, Z, W, var)
             Flux.Optimise.update!(opt, x, grad)
-            println("pl = ",pls)
+            println("pl = ",pl)
 
+            #check convergence
             fa=abs(pl-pl_t);fr=abs(pl-pl_t)/pl; xa=sum(abs2.(x.-x_t));xr=sum(abs2.(x.-x_t))/sum(abs2.(x));
             println("fa = ",fa," fr = ",fr," xa = ",xa," xr = ",xr)
-
-            #= if fa < fatol || fr < frtol || xa < xatol || xr < xrtol 
+            if fa < fatol || fr < frtol || xa < xatol || xr < xrtol  
                 verbose &&  println("TOL reached")
                 return x, pl
-            end =#
+            end
+
             x_t.=x
             pl_t=pl
         end
