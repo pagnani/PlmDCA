@@ -25,6 +25,15 @@ function inflate_matrix(J::Array{Float64,3},N)
     return Jt
 end
 
+function correct_APC(S::Matrix)
+    N = size(S, 1)
+    Si = sum(S, dims=1)
+    Sj = sum(S, dims=2)
+    Sa = sum(S) * (1 - 1/N)
+
+    S -= (Sj * Si) / Sa
+    return S
+end
 
 function compute_APC(J::Array{Float64,4},N,q)
     FN = fill(0.0, N,N)
@@ -34,27 +43,39 @@ function compute_APC(J::Array{Float64,4},N,q)
             FN[j,i] =FN[i,j]
         end
     end
-    FN=GaussDCA.correct_APC(FN)
+    FN=correct_APC(FN)
     return FN
 end
 
 
 function ReadFasta(filename::AbstractString,max_gap_fraction::Real, theta::Any, remove_dups::Bool)
 
-    Z = GaussDCA.read_fasta_alignment(filename, max_gap_fraction)
+    Z = read_fasta_alignment(filename, max_gap_fraction)
     if remove_dups
-        Z, _ = GaussDCA.remove_duplicate_seqs(Z)
+        Z, _ = remove_duplicate_sequences(Z)
     end
-
 
     N, M = size(Z)
     q = round(Int,maximum(Z))
 
     q > 32 && error("parameter q=$q is too big (max 31 is allowed)")
-    W , Meff = GaussDCA.compute_weights(Z,q,theta)
+    W , Meff = compute_weights(Z,q,theta)
     rmul!(W, 1.0/Meff)
     Zint=round.(Int,Z)
     return W, Zint,N,M,q
+end
+
+function compute_ranking(S::Matrix{Float64}, min_separation::Int = 5)
+    N = size(S, 1)
+    R = Array{Tuple{Int,Int,Float64}}(undef, div((N-min_separation)*(N-min_separation+1), 2))
+    counter = 0
+    for i = 1:N-min_separation, j = i+min_separation:N
+        counter += 1
+        R[counter] = (i, j, S[j,i])
+    end
+
+    sort!(R, by=x->x[3], rev=true)
+    return R 
 end
 
 function sumexp(vec::Array{Float64,1})

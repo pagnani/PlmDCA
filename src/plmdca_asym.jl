@@ -37,7 +37,8 @@ function plmdca_asym(filename::String;
                 max_gap_fraction::Real=0.9,
                 remove_dups::Bool=true,
                 kwds...)
-    W, Z, N, M, q = ReadFasta(filename, max_gap_fraction, theta, remove_dups)
+    time = @elapsed W, Z, N, M, q = ReadFasta(filename, max_gap_fraction, theta, remove_dups)
+    println("preprocessing took $time seconds")
     plmdca_asym(Z, W; kwds...)
 end
 
@@ -48,8 +49,8 @@ function MinimizePLAsym(alg::PlmAlg, var::PlmVar)
     LL = (var.N - 1) * var.q2 + var.q
     x0 = zeros(Float64, LL)
     vecps = SharedArray{Float64}(var.N)
-    Jmat = @distributed hcat for site = 1:var.N # 1:12
-
+    Jmat = zeros(LL,var.N) |> SharedArray
+    Threads.@threads for site = 1:var.N # 1:12
         opt = Opt(alg.method, length(x0))
         ftol_abs!(opt, alg.epsconv)
         xtol_rel!(opt, alg.epsconv)
@@ -61,9 +62,23 @@ function MinimizePLAsym(alg::PlmAlg, var::PlmVar)
         alg.verbose && @printf("site = %d\t pl = %.4f\t time = %.4f\t", site, minf, elapstime)
         alg.verbose && println("exit status = $ret")
         vecps[site] = minf
-        minx
+        Jmat[:,site] .= minx
     end
-    return Jmat, vecps
+    # Jmat = @distributed hcat for site = 1:var.N # 1:12
+    #     opt = Opt(alg.method, length(x0))
+    #     ftol_abs!(opt, alg.epsconv)
+    #     xtol_rel!(opt, alg.epsconv)
+    #     xtol_abs!(opt, alg.epsconv)
+    #     ftol_rel!(opt, alg.epsconv)
+    #     maxeval!(opt, alg.maxit)
+    #     min_objective!(opt, (x, g) -> optimfunwrapper(x, g, site, var))
+    #     elapstime = @elapsed  (minf, minx, ret) = optimize(opt, x0)
+    #     alg.verbose && @printf("site = %d\t pl = %.4f\t time = %.4f\t", site, minf, elapstime)
+    #     alg.verbose && println("exit status = $ret")
+    #     vecps[site] = minf
+    #     minx
+    # end
+    return sdata(Jmat), vecps
 end
 
 function ComputeUL(alg::PlmAlg, var::PlmVar, site::Int, LL::Int)
@@ -237,6 +252,6 @@ function ComputeScore(Jmat::Array{Float64,2}, var::PlmVar, min_separation::Int)
     Jtensor = (Jtensor1 + Jtensor2) / 2
 
     FN = compute_APC(Jtensor, N, q)
-    score = GaussDCA.compute_ranking(FN, min_separation)
+    score = compute_ranking(FN, min_separation)
     return score, FN, Jplm, hplm
 end

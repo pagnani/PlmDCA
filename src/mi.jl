@@ -8,10 +8,10 @@ function mutualinfo(Z::Array{T,2};
 
 
     q = Int(maximum(Z))
-    Pi_true, Pij_true, Meff, _ = GaussDCA.compute_new_frequencies(Z, q,  theta)
+    Pi_true, Pij_true, Meff, _ = compute_weighted_frequencies(Z, :auto)
     N = div(length(Pi_true),q-1)
     if 0.0 < pseudocount <= 1.
-        Pi, Pij = GaussDCA.add_pseudocount(Pi_true, Pij_true, pseudocount, N, q)
+        Pi, Pij = add_pseudocount(Pi_true, Pij_true, pseudocount)
         mi = mut_inf(Pij,Pi,q)
     elseif pseudocount == 0
         mi = mut_inf(Pij_true,Pi_true,q)
@@ -22,7 +22,7 @@ function mutualinfo(Z::Array{T,2};
         return mi
     elseif output == :score
         Neff = N - min_separation
-        score   = Vector{Tuple{Int,Int,Float64}}(undef, (Neff*(Neff+1))>>1)
+        score= Vector{Tuple{Int,Int,Float64}}(undef, (Neff*(Neff+1))>>1)
 
         ctr = 0
         for i=1:N-min_separation, j=i+min_separation:N
@@ -32,8 +32,8 @@ function mutualinfo(Z::Array{T,2};
         sort!(score,by=x->x[3],rev=true)
         return score
     elseif output == :apcscore
-        mi=GaussDCA.correct_APC(mi) 
-        score = GaussDCA.compute_ranking(mi,min_separation)
+        mi = correct_APC(mi) 
+        score = compute_ranking(mi,min_separation)
         return score
     else
         error("$output: output format not supported. Only :matrix, :score, :apcscore")
@@ -43,7 +43,7 @@ end
 function mutualinfo(filename::String;
                     max_gap_fraction::Real=0.9,
                     kwds...)
-    Z = GaussDCA.read_fasta_alignment(filename, max_gap_fraction)
+    Z = read_fasta_alignment(filename, max_gap_fraction)
     mutualinfo(Z; kwds...)             
 end
 

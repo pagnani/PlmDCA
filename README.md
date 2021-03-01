@@ -20,7 +20,7 @@ The present software is a Julia implementation of above mentioned
 papers, with no reference to the original MATLAB
 [software](http://plmdca.csc.kth.se) implementation.
 
-The code now requires at least Julia version 1.0 or later.
+The code now requires at least Julia version 1.5 or later.
 
 Install
 -------
@@ -33,13 +33,9 @@ To install just use the package manager and do a
 Overview
 --------
 
-The code uses [NLopt](https://github.com/JuliaOpt/NLopt.jl) which
+The code internally uses [NLopt](https://github.com/JuliaOpt/NLopt.jl) which
 provides a Julia interfaces to the free/open-source [NLopt
-library](http://ab-initio.mit.edu/wiki/index.php/NLopt). The program
-(only in its asymmetric version so far, see below) can be run on
-multiple cores previous ``addprocs(nprocs)`` where ``nprocs`` should
-be some integer number `np` lower or equal to your (physical) number
-of cores.
+library](http://ab-initio.mit.edu/wiki/index.php/NLopt). 
 
 
 Usage
@@ -48,6 +44,17 @@ To load the code just type
 ```
 julia> using PlmDCA
 ```
+
+The functions in this package are written to maximize performance. Most
+computationally-heavy functions can use multiple threads (start julia with 
+the `-t` option or set the `JULIA_NUM_THREADS` environment variable). 
+For more information on how set correctly the number of threads, please
+refer to the online [Julia Documentation on Multi-Threading](https://docs.julialang.org/en/v1/manual/multi-threading/).
+
+The program (only in its symmetric version `plmdca_sym`) can be run on
+multiple cores previous ``addprocs(nprocs)`` where ``nprocs`` should
+be some integer number `np` lower or equal to your (physical) number
+of cores.
 
 The software provides two main functions `plmdca(filename::String,
 ...)` and `plmdca_sym(filename::String,...)` (resp. the asymmetric and

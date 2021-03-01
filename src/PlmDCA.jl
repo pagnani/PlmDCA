@@ -1,7 +1,7 @@
 module PlmDCA
 using SharedArrays,Distributed,Printf, LinearAlgebra, Statistics
 using NLopt
-using GaussDCA
+import DCAUtils: read_fasta_alignment, remove_duplicate_sequences, compute_weights, add_pseudocount, compute_weighted_frequencies
 using LoopVectorization
 
 export PlmOut, plmdca, plmdca_asym, plmdca_sym, plmdca_asym

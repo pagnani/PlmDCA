@@ -260,8 +260,8 @@ function ComputeScoreSym(Jvec::Array{Float64,1}, var::PlmVar, min_separation::In
             l+=1
         end
     end
-    FN = GaussDCA.correct_APC(FN)
-    score = GaussDCA.compute_ranking(FN,min_separation)
+    FN = correct_APC(FN)
+    score = compute_ranking(FN,min_separation)
 	GC.gc() # something wrong with SharedArray
     return score, inflate_matrix(Jtens,N),htens
 end
