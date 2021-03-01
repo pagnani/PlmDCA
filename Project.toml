@@ -1,7 +1,7 @@
 name = "PlmDCA"
 uuid = "06784e46-84fc-5582-b8de-0e984192b79e"
 author = ["Andrea Pagnani <andrea.pagnani@gmail.com>"]
-version = "0.3.0"
+version = "0.4.0"
 
 [deps]
 DCAUtils = "e41cd558-3099-4f6e-a65d-5336857e40aa"
